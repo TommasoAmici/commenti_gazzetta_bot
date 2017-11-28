@@ -24,9 +24,37 @@ def get_articles_url(soup):
     return urls
 
 
-def get_json_comm(soup):
+def find_uuid_from_link(soup):
     # finds article uuid and passes to apicommunity
-    gazz_uuid = soup.find("div", attrs={"id": "uuid-article"})["data-cmsid"]
+    return soup.find("div", attrs={"id": "uuid-article"})["data-cmsid"]
+
+
+def sanitize_query(args):
+    # sanitizes query
+    query = " ".join(args)
+    non_alpha = re.compile("[\W_]+", re.UNICODE)
+    return non_alpha.sub(" ", query).strip()
+
+
+def get_uuids(args):
+    uuids = []
+    # get uuids of articles
+    if args:
+        query = sanitize_query(args)
+        # gets links from search page
+        links = get_articles_url(make_soup("http://sitesearch.gazzetta.it/sitesearch/home.html?q=" + query))
+        for link in links:
+            uuids.append(find_uuid_from_link(make_soup(link)))
+    else:
+        query = " "
+        with urllib.request.urlopen("http://apicommunity.gazzetta.it/api/getMostCommented") as url:
+            most_commented = json.loads(url.read().decode())
+        for article in most_commented:
+            uuids.append(article["article_uuid"])
+    return uuids, query
+
+
+def get_json_comm(gazz_uuid):
     with urllib.request.urlopen("http://apicommunity.gazzetta.it/api/getComments/uuid_" + gazz_uuid) as url:
         return json.loads(url.read().decode())
 
@@ -58,9 +86,8 @@ def json_to_dict(user_comment):
     json_dict["thread_votes_count"] = user_comment.get("thread_votes_count")
     return json_dict
 
+
 # creates list with all comments
-
-
 def merge_parents_children(json):
     parents_children = []
     for parent in json:
@@ -91,32 +118,20 @@ def make_string(comments_json, like, query):
     return string
 
 
-def get_comment(link, like, query):
-    # grabs article page
-    soup = make_soup(link)
-    if soup is None:
-        return False
+def get_comment(uuid, like, query):
+    comments_json = get_json_comm(uuid)
+    if comments_json:
+        return make_string(comments_json, like, query)
     else:
-        comments_json = get_json_comm(soup)
-        if comments_json:
-            string = make_string(comments_json, like, query)
-        else:
-            return False
-        return string
+        return False
 
 
 def main(bot, update, args, like):
-    # sanitizes query
-    query = " ".join(args)
-    non_alpha = re.compile("[\W_]+", re.UNICODE)
-    query = non_alpha.sub(" ", query).strip()
-    # gets links from search page
-    links = get_articles_url(
-        make_soup("http://sitesearch.gazzetta.it/sitesearch/home.html?q=" + query))
+    uuids, query = get_uuids(args)
+    random.shuffle(uuids)
     # tries to find a comment
-    while True:
-        link = random.choice(links)
-        string = get_comment(link, like, query)
+    for uuid in uuids:
+        string = get_comment(uuid, like, query)
         if string:
             break
     bot.send_message(chat_id=update.message.chat_id,
@@ -137,7 +152,7 @@ def dislike(bot, update, args):
     return
 
 
-def commento(bot, update, args):
+def random_comment(bot, update, args):
     like = 0
     main(bot, update, args, like)
     return
@@ -150,7 +165,7 @@ def start(bot, update):
 
 updater = Updater(bot_token)
 updater.dispatcher.add_handler(CommandHandler(
-    'commento', commento, pass_args=True))
+    'commento', random_comment, pass_args=True))
 updater.dispatcher.add_handler(
     CommandHandler('positivo', like, pass_args=True))
 updater.dispatcher.add_handler(
