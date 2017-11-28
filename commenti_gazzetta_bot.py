@@ -30,9 +30,9 @@ def get_json_comm(soup):
 
 def parse_comment(c, query):
     if c["votes"]:
-        return "👤 *{1:s}* `+{2:s}|-{3:s}`\n_RE: {0:s}_\n\n{4:s}".format(query, c["author_name"], c["votes"][0]["count"], c["votes"][0]["count"], c["content"])
+        return "👤 *{1:s}* `+{2:s}|-{3:s}`\n_RE: {0:s}_\n\n{4:s}".format(query, c["author_name"], c["votes"][0]["count"], c["votes"][1]["count"], c["content"].replace("<br>", " "))
     else:
-        return "👤 *{1:s}* `0|0`\n_RE: {0:s}_\n\n{2:s}".format(query, c["author_name"], c["content"])
+        return "👤 *{1:s}* `0|0`\n_RE: {0:s}_\n\n{2:s}".format(query, c["author_name"], c["content"].replace("<br>", " "))
 
 
 def get_comment(link, like, query):
