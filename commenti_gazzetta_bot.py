@@ -60,7 +60,7 @@ def get_comment(link, like, query):
 def main(bot, update, args, like):
     query = " ".join(args)
     non_alpha = re.compile("[\W_]+", re.UNICODE)
-    non_alpha.sub(" ", query)
+    query = non_alpha.sub(" ", query).strip()
     links = get_articles_url(make_soup("http://sitesearch.gazzetta.it/sitesearch/home.html?q=" + query))
     for link in links:
         string = get_comment(link, like, query)
