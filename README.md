@@ -1,2 +1,2 @@
-# giffetteria_bot
-A Telegram bot that returns gifs from Giffetteria.it
+# commenti_gazzetta_bot
+A Telegram bot that retrieves random comments from Gazzetta.it
